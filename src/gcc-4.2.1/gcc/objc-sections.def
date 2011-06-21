@@ -1,0 +1,29 @@
+DEF_SECTION (objc_v2_classlist_section, 0,
+	     ".section\t__objc_classlist,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_classrefs_section, 0, 
+         ".section\t__objc_classrefs,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_super_classrefs_section, 0,
+	     ".section\t__objc_superrefs,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_categorylist_section, 0,
+	     ".section\t__objc_catlist,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_nonlazy_class_section, 0,
+	     ".section\t__objc_nlclslist,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_nonlazy_category_section, 0,
+	     ".section\t__objc_nlcatlist,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_protocollist_section, 0,
+	     ".section\t__objc_protolist,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_protocolrefs_section, 0,
+	     ".section\t__objc_protorefs,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_selector_refs_section, 0,
+	     ".section\t__objc_selrefs,\"aw\",%progbits", 1)
+
+DEF_SECTION (objc_v2_message_refs_section, 0,
+	     ".section\t__objc_msgrefs,\"aw\",%progbits", 0)

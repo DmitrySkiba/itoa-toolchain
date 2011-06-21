@@ -1,0 +1,9 @@
+This is a customized gcc-6.6 for the Android platform.  It is based on the
+FSF gdb-6.6 release with the following modification listed in reversed
+chronological order.
+
+2008-09-26  Doug Kwan  <dougkwan@google.com>
+
+	Change bfd/doc/Makefile.in so that the generated bfd.info is the
+	object directory.  This fixes a build problem where p4 checks out
+	a copy of bfd.info in the source tree as read-only.
