@@ -4443,6 +4443,8 @@ finish_var_decl (tree var, tree initializer)
 /* Find the decl for the constant string class reference.  This is only
    used for the NeXT runtime.  */
 
+static GTY(()) tree cfstring_class_reference = NULL_TREE;
+
 static tree
 setup_string_decl (void)
 {
@@ -4468,6 +4470,19 @@ setup_string_decl (void)
   if (flag_objc_abi == 2 && !string_class_decl)
     string_class_decl = create_extern_decl (objc_v2_class_template, name);
   /* APPLE LOCAL end radar 4719165 */
+
+  /* extern int __CFConstantStringClassReference[]; */
+  cfstring_class_reference 
+    = build_decl (VAR_DECL,
+         get_identifier ("__CFConstantStringClassReference"),
+         build_array_type (integer_type_node, NULL_TREE));
+  TREE_PUBLIC (cfstring_class_reference) = 1;
+  TREE_USED (cfstring_class_reference) = 1;
+  DECL_ARTIFICIAL (cfstring_class_reference) = 1;
+  pushdecl_top_level(cfstring_class_reference);
+  DECL_EXTERNAL (cfstring_class_reference) = 1;
+  rest_of_decl_compilation (cfstring_class_reference, 0, 0);
+
   return string_class_decl;
 }
 
@@ -4865,6 +4880,8 @@ synth_module_prologue (void)
    struct STRING_OBJECT_CLASS_NAME
    {
      Object isa;
+     unsigned flags;
+     unsigned rc;
      char *cString;
      unsigned int length;
    }; */
@@ -4877,9 +4894,17 @@ check_string_class_template (void)
 #define AT_LEAST_AS_LARGE_AS(F, T) \
   (F && TREE_CODE (F) == FIELD_DECL \
      && (TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (F))) \
-	 >= TREE_INT_CST_LOW (TYPE_SIZE (T))))
+        >= TREE_INT_CST_LOW (TYPE_SIZE (T))))
 
   if (!AT_LEAST_AS_LARGE_AS (field_decl, ptr_type_node))
+    return 0;
+
+  field_decl = TREE_CHAIN (field_decl);
+  if (!AT_LEAST_AS_LARGE_AS (field_decl, unsigned_type_node))
+    return 0;
+
+  field_decl = TREE_CHAIN (field_decl);
+  if (!AT_LEAST_AS_LARGE_AS (field_decl, unsigned_type_node))
     return 0;
 
   field_decl = TREE_CHAIN (field_decl);
@@ -4896,15 +4921,29 @@ check_string_class_template (void)
 static GTY(()) int string_layout_checked;
 
 /* Construct an internal string layout to be used as a template for
-   creating NSConstantString/NXConstantString instances.  */
+   creating NSConstantString/NXConstantString instances.
 
+   This function generates the following CFString-compatible layout
+   to enable bridging:
+   struct {
+     void* isa;
+     unsigned flags;
+     unsigned rc;
+     void* chars;
+     unsigned length;
+   };
+*/
 static tree
 objc_build_internal_const_str_type (void)
 {
   tree type = (*lang_hooks.types.make_type) (RECORD_TYPE);
   tree fields = build_decl (FIELD_DECL, NULL_TREE, ptr_type_node);
-  tree field = build_decl (FIELD_DECL, NULL_TREE, ptr_type_node);
+  tree field = build_decl (FIELD_DECL, NULL_TREE, unsigned_type_node);
 
+  TREE_CHAIN (field) = fields; fields = field;
+  field = build_decl (FIELD_DECL, NULL_TREE, unsigned_type_node);
+  TREE_CHAIN (field) = fields; fields = field;
+  field = build_decl (FIELD_DECL, NULL_TREE, ptr_type_node);
   TREE_CHAIN (field) = fields; fields = field;
   field = build_decl (FIELD_DECL, NULL_TREE, unsigned_type_node);
   TREE_CHAIN (field) = fields; fields = field;
@@ -5064,14 +5103,18 @@ objc_build_string_object (tree string)
       desc->literal = string;
 
       /* GNU:    (NXConstantString *) & ((__builtin_ObjCString) { NULL, string, length })  */
-      /* NeXT:   (NSConstantString *) & ((__builtin_ObjCString) { isa, string, length })   */
+      /* NeXT:   (NSConstantString *) & ((__builtin_ObjCString) { __CFConstantStringClassReference, 0x7c8, 0, string, length }) */
       fields = TYPE_FIELDS (internal_const_str_type);
       initlist
 	= build_tree_list (fields,
 			   flag_next_runtime
-			   ? build_unary_op (ADDR_EXPR, string_class_decl, 0)
+			   ? build_unary_op (ADDR_EXPR, cfstring_class_reference, 0)
 			   /* APPLE LOCAL radar 6285794 */
 			   : integer_zero_node);
+      fields = TREE_CHAIN (fields);
+      initlist = tree_cons (fields, build_int_cst (NULL_TREE, 0x000007c8), initlist);
+      fields = TREE_CHAIN (fields);
+      initlist = tree_cons (fields, build_int_cst (NULL_TREE, 0), initlist);
       fields = TREE_CHAIN (fields);
       initlist = tree_cons (fields, build_unary_op (ADDR_EXPR, string, 1),
 			    initlist);

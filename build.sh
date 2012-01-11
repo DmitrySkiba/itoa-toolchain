@@ -166,7 +166,7 @@ strip $TOOLCHAIN_PREFIX/libexec/gcc/*/*/cc1
 strip $TOOLCHAIN_PREFIX/libexec/gcc/*/*/cc1plus
 strip $TOOLCHAIN_PREFIX/libexec/gcc/*/*/collect2
 
-# Copy toolchain configs
+# Copy toolchain configs.
 cp -f $THIS_PATH/config.mk $THIS_PATH/setup.mk $TOOLCHAIN_ROOT
 
 # =========================================================
